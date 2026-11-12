@@ -1,0 +1,5 @@
+# Dev-only tooling, not needed to run server.py itself.
+pytest
+pytest-mock
+# mutmut is pinned to 2.4.5 deliberately -- see scripts/run_mutation.sh for why.
+mutmut==2.4.5
