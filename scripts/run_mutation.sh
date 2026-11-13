@@ -23,6 +23,14 @@
 # that instrumentation layer entirely and ran cleanly against this layout.
 # If a future mutmut 3.x release documents a fix or an opt-out, re-evaluate
 # the pin rather than assuming 2.4.5 forever.
+#
+# --runner mutation_runner.sh: mutmut 2.4.5's own killed/survived check
+# (tests_pass() in mutmut/__init__.py) is `returncode != 1` -- only exit
+# code 1 counts as "killed". Confirmed empirically: pytest exits 2 on a
+# collection error, not 1, so an import-breaking mutant would otherwise
+# be misreported as BAD_SURVIVED (added to the gaps you have to triage)
+# even though the suite obviously caught it. The wrapper just normalizes
+# any nonzero pytest exit code to 1 before mutmut sees it.
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
@@ -39,7 +47,7 @@ fi
 
 rm -rf .mutmut-cache
 
-mutmut run --paths-to-mutate "$TARGET"
+mutmut run --paths-to-mutate "$TARGET" --runner "bash scripts/mutation_runner.sh"
 echo
 echo "--- survived mutants (these are the gaps your tests don't catch yet) ---"
 mutmut results

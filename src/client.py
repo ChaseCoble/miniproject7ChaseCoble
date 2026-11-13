@@ -4,7 +4,8 @@
 
 import os
 import requests
-from src.exceptions import BadTokenError, ForbiddenError, NotFoundError, MalformedError, RateLimitedError
+from src.exceptions import (BadTokenError, ForbiddenError, NotFoundError, ConflictError,
+                            MalformedError, LockedError, RateLimitedError)
 
 BASE = "https://practice.fhsucyber.com"
 TOKEN = os.environ.get("PRACTICE_API_TOKEN")
@@ -17,7 +18,9 @@ class PracticeHubClient:
         401: (BadTokenError, "Authentication failed: token missing, expired, or invalid."),
         403: (ForbiddenError, "Access denied: you do not have permission for this action."),
         404: (NotFoundError, "Not found: the requested resource does not exist."),
+        409: (ConflictError, "Conflict: the request conflicts with the current state of the resource."),
         422: (MalformedError, "Unprocessable request: the submitted data was invalid."),
+        423: (LockedError, "Locked: the resource is temporarily locked and cannot be modified right now."),
         429: (RateLimitedError, "Rate limited: too many requests, try again later."),
     }
 
@@ -46,7 +49,7 @@ class PracticeHubClient:
         resp = requests.get(f"{self.base}/api/v1/posts", headers=self.headers, params=params)
         return self._handle_response(resp)
 
-    # TODO (Mini Project 1): get_post, update_post, delete_post
+
     def get_post(self, post_id):
         if not isinstance(post_id, int):
             raise TypeError(f"post_id must be an int, got {type(post_id).__name__}")

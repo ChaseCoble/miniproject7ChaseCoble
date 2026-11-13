@@ -35,10 +35,16 @@ following every rule below exactly. Deviating from any rule here, even to
 8. **Reuse `PracticeHubClient` from Mini Project 1 — do not re-implement HTTP
    calls inline in `server.py`.** Each `@mcp.tool()` function calls the client;
    its typed exceptions (`BadTokenError`, `ForbiddenError`, `NotFoundError`,
-   `MalformedError`, and `RateLimitedError` for a 429) are exactly what the
-   rubric's "sensible error handling" item wants. Catch all five in each tool and
-   return a clear, actionable message. None of them should ever propagate out of
-   a tool function.
+   `MalformedError`, `RateLimitedError` for a 429, `ConflictError` for a 409,
+   and `LockedError` for a 423) are exactly what the rubric's "sensible error
+   handling" item wants. Catch all seven in each tool and return a clear,
+   actionable message. None of them should ever propagate out of a tool
+   function. **`get_post`, `update_post`, and `delete_post` must also
+   catch `TypeError`** the same way — the client raises it for a non-int
+   `post_id`, and the existing tests for all three
+   (`test_..._returns_clear_message_on_invalid_post_id_type`) require it to
+   come back as `{"error": str(e)}`, not propagate. `list_posts` and
+   `create_post` take no `post_id`, so this doesn't apply to them.
 9. **Every tool needs a real, specific docstring** — the model reads it to decide
    when to call the tool. A placeholder ("Does the thing.") does not satisfy this
    even if a test only checks for non-empty.
@@ -77,6 +83,42 @@ Fix required: change those five parameters' annotations to `str | None` /
 `list | None` (keep the `= None` defaults). That's the only change these
 three tests need — nothing about `get_post`/`delete_post` is affected,
 since `post_id: int` is required, not optional.
+
+## Two more typed exceptions: `ConflictError` (409) and `LockedError` (423)
+
+Spec source: https://practice.fhsucyber.com/docs-guide. The documented error
+codes are 401/403/404/409/422/423, not the 401/403/404/422/429 that
+`_ERRORS` currently maps. 429 isn't documented anywhere on that page —
+leave it as-is for now (Chase's call whether that's real-but-undocumented or
+a leftover assumption, not yours to resolve), but 409 and 423 **are**
+documented and currently fall through `_handle_response` to a bare
+`requests.HTTPError` via `resp.raise_for_status()` instead of a typed
+exception. That's a real, currently-unhandled gap, not a guess.
+
+Required:
+- `src/exceptions.py`: add `ConflictError` and `LockedError` (same shape as
+  the existing five — exact naming is Claude's proposal, not confirmed
+  against any rubric wording, so flag it in your report if you'd rather
+  name them something else).
+- `src/client.py`'s `_ERRORS` dict: map `409 -> ConflictError` and
+  `423 -> LockedError`, same pattern as the other five entries.
+- `server.py`'s `CLIENT_ERRORS` tuple: add both, so all five tools catch
+  all seven typed exceptions, not five (see rule 8 above).
+
+Tests already exist and are failing for all of this:
+`test_handle_response_409_raises` / `test_handle_response_423_raises` in
+`practicehub_client_unit_test.py` (client layer), and
+`test_<tool>_returns_clear_message_on_conflict` /
+`test_<tool>_returns_clear_message_on_locked` in each of the five
+`test_<tool>.py` files (tool layer).
+
+## `delete_post`'s return value on success is `None`
+
+Not `{"deleted": post_id}` or any other invented shape — `client.delete_post()`
+itself always returns `None` on success, and
+`test_delete_post_returns_none_on_success` already specifies that the tool
+returns exactly that, unchanged. Return type annotation should be `None | dict`
+(`None` on success, `{"error": ...}` on a caught exception), not `dict`.
 
 ## Pinned dependency
 
