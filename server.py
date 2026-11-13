@@ -97,3 +97,6 @@ def delete_post(post_id: int) -> dict | None:
         return client.delete_post(post_id)
     except POST_ID_ERRORS as e:
         return {"error": str(e)}
+
+if __name__ == "__main__":
+    mcp.run()

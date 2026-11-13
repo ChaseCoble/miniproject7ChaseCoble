@@ -70,7 +70,7 @@ class PracticeHubClient:
         self._handle_response(resp)
         return None
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no mutate
     if not TOKEN:
         raise SystemExit("PRACTICE_API_TOKEN is not set - see 'Set your token' in Week 2.")
 
