@@ -20,3 +20,7 @@ class NotFoundError(Exception):
 #422
 class MalformedError(Exception):
     pass
+
+#429
+class RateLimitedError(Exception):
+    pass

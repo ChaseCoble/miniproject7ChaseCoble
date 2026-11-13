@@ -1,10 +1,10 @@
 # INF601 - Advanced Programming in Python
 # Chase Coble
-# MIni Project 1
+# Mini Project 7
 
 import os
 import requests
-from src.exceptions import BadTokenError, ForbiddenError, NotFoundError, MalformedError
+from src.exceptions import BadTokenError, ForbiddenError, NotFoundError, MalformedError, RateLimitedError
 
 BASE = "https://practice.fhsucyber.com"
 TOKEN = os.environ.get("PRACTICE_API_TOKEN")
@@ -18,6 +18,7 @@ class PracticeHubClient:
         403: (ForbiddenError, "Access denied: you do not have permission for this action."),
         404: (NotFoundError, "Not found: the requested resource does not exist."),
         422: (MalformedError, "Unprocessable request: the submitted data was invalid."),
+        429: (RateLimitedError, "Rate limited: too many requests, try again later."),
     }
 
     def __init__(self, base_url, token):

@@ -5,7 +5,7 @@
 import os
 import pytest
 from src.client import PracticeHubClient
-from src.exceptions import BadTokenError, ForbiddenError, NotFoundError, MalformedError
+from src.exceptions import BadTokenError, ForbiddenError, NotFoundError, MalformedError, RateLimitedError
 
 @pytest.fixture
 def client():
@@ -90,6 +90,77 @@ def test_delete_post(client, mocker):
         headers=client.headers
     )
 
+#Create Post
+def test_create_post_sends_title_body_and_tags(client, mock_response, sample_post, mocker):
+    resp = mock_response(sample_post)
+    mock_post = mocker.patch("requests.post", return_value=resp)
+
+    result = client.create_post("New Post", body="Some body", tags=["a", "b"])
+
+    mock_post.assert_called_once_with(
+        "https://practice.fhsucyber.com/api/v1/posts",
+        headers=client.headers,
+        json={"title": "New Post", "body": "Some body", "tags": ["a", "b"]}
+    )
+    assert result == sample_post
+
+def test_create_post_defaults_body_empty_and_tags_to_empty_list(client, mock_response, sample_post, mocker):
+    resp = mock_response(sample_post)
+    mock_post = mocker.patch("requests.post", return_value=resp)
+
+    client.create_post("Title only")
+
+    mock_post.assert_called_once_with(
+        "https://practice.fhsucyber.com/api/v1/posts",
+        headers=client.headers,
+        json={"title": "Title only", "body": "", "tags": []}
+    )
+
+#List Posts
+def test_list_posts_defaults_to_mine_false_and_no_tag_filter(client, mock_response, mocker):
+    resp = mock_response([])
+    mock_get = mocker.patch("requests.get", return_value=resp)
+
+    client.list_posts()
+
+    mock_get.assert_called_once_with(
+        "https://practice.fhsucyber.com/api/v1/posts",
+        headers=client.headers,
+        params={"mine": False}
+    )
+
+def test_list_posts_forwards_mine_true(client, mock_response, mocker):
+    resp = mock_response([])
+    mock_get = mocker.patch("requests.get", return_value=resp)
+
+    client.list_posts(mine=True)
+
+    mock_get.assert_called_once_with(
+        "https://practice.fhsucyber.com/api/v1/posts",
+        headers=client.headers,
+        params={"mine": True}
+    )
+
+def test_list_posts_includes_tag_filter_only_when_given(client, mock_response, mocker):
+    resp = mock_response([])
+    mock_get = mocker.patch("requests.get", return_value=resp)
+
+    client.list_posts(tag="python")
+
+    mock_get.assert_called_once_with(
+        "https://practice.fhsucyber.com/api/v1/posts",
+        headers=client.headers,
+        params={"mine": False, "tag": "python"}
+    )
+
+def test_list_posts_returns_exactly_what_the_client_receives(client, mock_response, sample_post, mocker):
+    resp = mock_response([sample_post])
+    mocker.patch("requests.get", return_value=resp)
+
+    result = client.list_posts()
+
+    assert result == [sample_post]
+
 #Error-Handling Tests
 def test_handle_response_200_returns_json(client, mock_response, sample_post, mocker):
     resp = mock_response(sample_post, status_code=200)
@@ -116,8 +187,13 @@ def test_handle_response_422_raises(client, mock_response, sample_post, mocker):
     with pytest.raises(MalformedError):
         client._handle_response(resp)
 
+def test_handle_response_429_raises(client, mock_response, sample_post, mocker):
+    resp = mock_response(sample_post, status_code=429)
+    with pytest.raises(RateLimitedError):
+        client._handle_response(resp)
+
+
 def test_handle_response_204_returns_none(client, mock_response, mocker):
     resp = mock_response(None, status_code=204)
     result = client._handle_response(resp)
     assert result is None
-

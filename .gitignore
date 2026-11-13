@@ -3,4 +3,7 @@ __pycache__/
 db.sqlite3
 .env
 staticfiles/
+.mutmut-cache
+skill_improvements.txt
+mutation_record.md
 
